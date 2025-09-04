@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat Konsultasi RSBM</title>
+  <style>
+    :root{
+      --primary:#0d6efd;
+      --primary-2:#00c6ff;
+      --glass-bg:rgba(255,255,255,.28);
+      --glass-2:rgba(255,255,255,.5);
+      --ink:#0f2137;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color:#06233b;
+      background: radial-gradient(75% 100% at 20% 10%, #b3ecff 0%, #8ad7ff 25%, #59b8ff 50%, #4facfe 70%, #00f2fe 100%);
+      overflow:hidden;
+    }
+    /* soft pattern blur layer */
+    .bg-blur{
+      position:fixed; inset:0;
+      background:
+        radial-gradient(40rem 40rem at -10% -20%, rgba(255,255,255,.35), transparent 60%),
+        radial-gradient(35rem 35rem at 110% 20%, rgba(255,255,255,.25), transparent 60%),
+        radial-gradient(60rem 60rem at 50% 110%, rgba(255,255,255,.2), transparent 60%);
+      filter: blur(35px);
+      z-index:-1;
+    }
+
+    /* sections */
+    .page{display:none; height:100%; width:100%}
+    .active{display:block}
+
+    /* glass card */
+    .card{
+      background:var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border:1px solid rgba(255,255,255,.35);
+      border-radius:22px;
+      box-shadow:0 10px 30px rgba(0,0,0,.12);
+    }
+
+    /* header bar */
+    .appbar{
+      height:64px; display:flex; align-items:center; gap:12px; justify-content:center;
+      background:linear-gradient(90deg, rgba(13,110,253,.88), rgba(0,198,255,.88));
+      color:#fff; font-weight:700; letter-spacing:.4px;
+      position:relative; border-bottom:1px solid rgba(255,255,255,.35);
+      backdrop-filter: blur(8px);
+    }
+    .appbar img{height:34px}
+    .appbar .right{
+      position:absolute; right:12px; top:0; bottom:0; display:flex; align-items:center; gap:8px; opacity:.9
+    }
+    .badge{padding:4px 10px; border-radius:999px; background:rgba(255,255,255,.22); font-size:.8rem}
+
+    /* login layout */
+    .login-wrap{
+      height:calc(100% - 64px);
+      display:grid; place-items:center;
+    }
+    .login-grid{
+      width:min(980px,92vw);
+      display:grid; grid-template-columns:1fr 1fr; gap:22px;
+    }
+    .login-box{padding:26px}
+    .login-box h3{margin:6px 0 14px 0; color:#fff}
+    .logo{width:84px; display:block; margin:0 auto 6px auto; filter:drop-shadow(0 6px 18px rgba(13,110,253,.35))}
+    input,select,button,textarea{
+      font:inherit
+    }
+    .field{
+      width:100%; margin:10px 0 14px 0;
+      background:rgba(255,255,255,.9);
+      border:none; outline:none; border-radius:14px; padding:13px 14px;
+    }
+    .btn{
+      width:100%; padding:13px 16px; border:none; border-radius:14px;
+      color:#fff; cursor:pointer; font-weight:700; letter-spacing:.3px;
+      background:linear-gradient(90deg, var(--primary), var(--primary-2));
+      transition: transform .12s ease, box-shadow .2s ease;
+      box-shadow:0 8px 20px rgba(13,110,253,.25);
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .muted{font-size:.88rem; opacity:.85; color:#eaf6ff}
+
+    /* choose doctor page */
+    .choose-wrap{height:calc(100% - 64px); padding:18px 18px 22px 18px; display:flex; gap:18px}
+    .doctor-list{
+      width:100%; height:100%; overflow:auto;
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:16px;
+    }
+    .doctor-card{padding:16px; display:flex; gap:12px; align-items:center; cursor:pointer; transition: transform .12s}
+    .doctor-card:hover{transform: translateY(-2px)}
+    .doc-avatar{
+      width:54px; height:54px; border-radius:18px; display:grid; place-items:center; color:#fff; font-weight:800;
+      background:linear-gradient(135deg, #6aa7ff, #00e0ff);
+      box-shadow:0 8px 18px rgba(0,0,0,.12);
+    }
+    .doc-meta{flex:1}
+    .doc-name{font-weight:700}
+    .doc-spec{font-size:.9rem; opacity:.75}
+    .dot{
+      width:10px; height:10px; border-radius:50%;
+      box-shadow:0 0 0 3px rgba(255,255,255,.55) inset, 0 0 12px currentColor;
+    }
+    .online{color:#1ecb4f; background:#1ecb4f}
+    .offline{color:#1b8fff; background:#1b8fff}
+    .doc-foot{display:flex; align-items:center; gap:8px; margin-top:6px; font-size:.9rem; opacity:.9}
+
+    /* chat layout */
+    .chat-wrap{height:calc(100% - 64px); display:flex}
+    .chat-left{
+      width:280px; padding:12px; overflow:auto; background:var(--glass-2);
+      backdrop-filter: blur(10px);
+    }
+    .list-title{font-weight:800; margin:8px 6px 10px 6px}
+    .session-item{
+      padding:10px 12px; border-radius:14px; background:rgba(255,255,255,.75);
+      margin-bottom:8px; cursor:pointer;
+      display:flex; gap:10px; align-items:flex-start;
+      transition: background .15s
+    }
+    .session-item:hover{background:#fff}
+    .session-meta{font-size:.86rem; opacity:.8}
+    .chip{padding:3px 8px; border-radius:999px; font-size:.75rem; background:rgba(13,110,253,.1); color:#0d6efd}
+
+    .chat-main{flex:1; display:flex; flex-direction:column}
+    .chat-body{
+      flex:1; overflow:auto; padding:16px;
+      background:rgba(255,255,255,.45); backdrop-filter: blur(8px);
+    }
+    .bubble{
+      margin:8px 0; padding:12px 16px; border-radius:18px; max-width:72%;
+      box-shadow:0 4px 14px rgba(0,0,0,.08);
+      word-wrap:break-word; font-size:.97rem
+    }
+    .me{margin-left:auto; background:linear-gradient(135deg,#0d6efd,#41c2ff); color:#fff; border-bottom-right-radius:6px}
+    .other{margin-right:auto; background:#fff; border-bottom-left-radius:6px}
+    .chat-input{display:flex; gap:8px; padding:10px; background:var(--glass-2); backdrop-filter:blur(8px)}
+    .chat-input input{flex:1}
+    .danger{background:linear-gradient(90deg,#ff3c3c,#ff6a6a)}
+    .row{display:flex; gap:8px; align-items:center}
+    .spacer{flex:1}
+    .hide{display:none}
+  </style>
+</head>
+<body>
+  <div class="bg-blur"></div>
+
+  <!-- ============== APP BAR (dynamic title) ============== -->
+  <div class="appbar">
+    <img src="LOGO-RSBM.png" alt="RSBM"/>
+    <span id="appTitle">Chat Konsultasi RSBM</span>
+    <div class="right">
+      <span id="whoAmI" class="badge"></span>
+    </div>
+  </div>
+
+  <!-- ============== LOGIN PAGE ============== -->
+  <section id="pageLogin" class="page active">
+    <div class="login-wrap">
+      <div class="login-grid">
+        <!-- USER login -->
+        <div class="card login-box">
+          <img class="logo" src="LOGO-RSBM.png" alt="RSBM"/>
+          <h3>Login User</h3>
+          <input class="field" type="text" id="userPhone" placeholder="Nomor HP (cth: 0822xxxx)"/>
+          <button class="btn" id="btnUserLogin">Masuk</button>
+          <div class="muted">Masuk pakai nomor HP. Akun dibuat otomatis bila belum ada.</div>
+        </div>
+
+        <!-- ADMIN login -->
+        <div class="card login-box">
+          <img class="logo" src="LOGO-RSBM.png" alt="RSBM"/>
+          <h3>Login Admin</h3>
+          <input class="field" type="text" id="adminUser" placeholder="Username admin"/>
+          <input class="field" type="password" id="adminPass" placeholder="Password"/>
+          <button class="btn" id="btnAdminLogin">Masuk</button>
+          <div class="muted">Admin diverifikasi ke tabel <b>admins</b>.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== USER: CHOOSE DOCTOR PAGE ============== -->
+  <section id="pageChooseDoctor" class="page">
+    <div class="choose-wrap">
+      <div class="doctor-list" id="doctorList">
+        <!-- cards render here -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== USER CHAT PAGE ============== -->
+  <section id="pageUserChat" class="page">
+    <div class="chat-wrap">
+      <div class="chat-main card" style="margin:12px; width:100%;">
+        <div class="row" style="padding:10px 14px;">
+          <div><strong id="chatWithDoctor">Chat</strong></div>
+          <span class="spacer"></span>
+        </div>
+        <div id="userMessages" class="chat-body"></div>
+        <div class="chat-input">
+          <input class="field" type="text" id="userMessageInput" placeholder="Tulis pesan..."/>
+          <button class="btn" id="btnUserSend" style="width:140px">Kirim</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== ADMIN DASHBOARD & CHAT ============== -->
+  <section id="pageAdmin" class="page">
+    <div class="chat-wrap">
+      <!-- left list -->
+      <div class="chat-left">
+        <div class="row" style="gap:6px; margin-bottom:8px">
+          <button id="tabActive" class="btn" style="padding:8px 10px; width:auto">Menunggu/Aktif</button>
+          <button id="tabClosed" class="btn" style="padding:8px 10px; width:auto; background:linear-gradient(90deg,#3f7efb,#64b5ff)">Selesai</button>
+        </div>
+        <div id="listActive">
+          <div class="list-title">Daftar Session Aktif</div>
+          <div id="activeContainer"></div>
+        </div>
+        <div id="listClosed" class="hide">
+          <div class="list-title">Riwayat (Selesai)</div>
+          <div id="closedContainer"></div>
+        </div>
+      </div>
+
+      <!-- right chat -->
+      <div class="chat-main card" style="margin:12px; margin-left:0">
+        <div class="row" style="padding:10px 14px;">
+          <div>
+            <strong id="adminChatTitle">Pilih user untuk melihat chat</strong>
+            <div id="adminChatSubtitle" class="session-meta"></div>
+          </div>
+          <span class="spacer"></span>
+          <button id="btnMarkDone" class="btn danger hide" style="width:auto; padding:10px 14px;">Tandai Selesai</button>
+        </div>
+        <div id="adminMessages" class="chat-body"></div>
+        <div class="chat-input">
+          <input class="field" type="text" id="adminMessageInput" placeholder="Tulis balasan..."/>
+          <button class="btn" id="btnAdminSend" style="width:140px">Kirim</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ==== CONFIG SUPABASE (ganti anon key sesuai project kamu) ====
+    const SUPABASE_URL = "https://ttsguetkkxlqghvfozva.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0c2d1ZXRra3hscWdodmZvenZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2ODY4MzcsImV4cCI6MjA3MjI2MjgzN30.UtEojjUuOM4vA8ZKntOVDNvRx40OiH14xJb8gqJv2uY"; // <-- ganti dengan anon key terbaru
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ==== STATE ====
+    let auth = { role:null, user:null, doctor:null };  // user={id,phone}, doctor={id,name,...}
+    let currentSession = null; // {id, ...}
+    let msgChannel = null;     // realtime channel for current session
+    let adminMsgChannel = null;
+    let adminViewingSessionId = null;
+
+    // ==== UI HELPERS ====
+    const show = (id)=>{ document.getElementById(id).classList.remove('hide'); }
+    const hide = (id)=>{ document.getElementById(id).classList.add('hide'); }
+    const goto = (id)=>{
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+    const setTitle = (t)=>{ document.getElementById('appTitle').textContent = t; }
+
+    function toast(msg){ alert(msg); }
+
+    // ==== LOGIN USER ====
+    document.getElementById('btnUserLogin').addEventListener('click', loginUser);
+    async function loginUser(){
+      const phone = document.getElementById('userPhone').value.trim();
+      if(!phone){ toast('Masukkan nomor HP'); return; }
+
+      // Upsert user by phone
+      let { data:userRow, error:e1 } = await sb
+        .from('users')
+        .select('*').eq('phone', phone).single();
+
+      if(e1){
+        // not found => create
+        const { data:ins, error:e2 } = await sb.from('users')
+          .insert({ phone }).select('*').single();
+        if(e2){ toast('Gagal membuat user: '+e2.message); return; }
+        userRow = ins;
+      }
+      auth = { role:'user', user:userRow, doctor:null };
+      document.getElementById('whoAmI').textContent = `User • ${phone}`;
+      setTitle('Pilih Dokter');
+      await loadDoctors();
+      goto('pageChooseDoctor');
+    }
+
+    // ==== LOGIN ADMIN ====
+    document.getElementById('btnAdminLogin').addEventListener('click', loginAdmin);
+    async function loginAdmin(){
+      const u = document.getElementById('adminUser').value.trim();
+      const p = document.getElementById('adminPass').value.trim();
+      if(!u || !p){ toast('Isi username & password'); return; }
+
+      const { data, error } = await sb.from('admins')
+        .select('*').eq('username', u).eq('password', p).single();
+      if(error || !data){ toast('Username atau password salah'); return; }
+
+      auth = { role:'admin', user:data };
+      document.getElementById('whoAmI').textContent = `Admin • ${u}`;
+      setTitle('Dashboard Admin');
+      goto('pageAdmin');
+      loadAdminLists();
+      subscribeAdminSessions(); // realtime refresh
+    }
+
+    // ==== LOAD DOCTORS (cards) ====
+    async function loadDoctors(){
+      const list = document.getElementById('doctorList');
+      list.innerHTML = '';
+      const { data, error } = await sb.from('doctors').select('*').order('name', {ascending:true});
+      if(error){ list.innerHTML = '<div class="card" style="padding:16px">Gagal memuat dokter.</div>'; return; }
+
+      data.forEach((d,i)=>{
+        const card = document.createElement('div');
+        card.className = 'card doctor-card';
+        card.onclick = ()=> chooseDoctor(d);
+        card.innerHTML = `
+          <div class="doc-avatar">${(d.name||'D?').replace('Dr.','').trim().slice(0,2).toUpperCase()}</div>
+          <div class="doc-meta">
+            <div class="doc-name">${d.name}</div>
+            <div class="doc-spec">${d.specialization||'-'}</div>
+            <div class="doc-foot">
+              <span class="dot ${d.status==='online'?'online':'offline'}"></span>
+              <span>${d.status==='online'?'Online':'Offline'}</span>
+            </div>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    // ==== USER CHOOSES DOCTOR / CREATE OR ATTACH SESSION ====
+    async function chooseDoctor(doc){
+      auth.doctor = doc;
+      setTitle('Chat dengan '+doc.name);
+      document.getElementById('chatWithDoctor').textContent = `Chat • ${doc.name} (${doc.specialization||''})`;
+
+      // 1) check existing active session for this user
+      let { data:sessList, error:e1 } = await sb.from('sessions')
+        .select('*').eq('user_id', auth.user.id).eq('status','active').limit(1);
+      if(e1){ toast('Gagal mencari sesi: '+e1.message); return; }
+
+      if(sessList && sessList.length){
+        // reuse & update doctor_id (if different)
+        let sess = sessList[0];
+        if(sess.doctor_id !== doc.id){
+          const { data:upd, error:eUp } = await sb.from('sessions')
+            .update({ doctor_id: doc.id }).eq('id', sess.id).select('*').single();
+          if(eUp){ toast('Gagal set dokter: '+eUp.message); return; }
+          sess = upd;
+        }
+        currentSession = sess;
+      } else {
+        // create new
+        const { data:newSess, error:e2 } = await sb.from('sessions')
+          .insert({ user_id: auth.user.id, doctor_id: doc.id, status:'active' })
+          .select('*').single();
+        if(e2){ toast('Gagal membuat sesi: '+e2.message); return; }
+        currentSession = newSess;
+      }
+
+      // go chat
+      goto('pageUserChat');
+      document.getElementById('userMessages').innerHTML = '';
+      await loadMessagesFor(currentSession.id, 'userMessages');
+      subscribeUserMessages(currentSession.id);
+    }
+
+    // ==== LOAD MESSAGES ====
+    async function loadMessagesFor(sessionId, targetId){
+      const { data, error } = await sb.from('messages')
+        .select('*').eq('session_id', sessionId).order('created_at', {ascending:true});
+      const pane = document.getElementById(targetId);
+      pane.innerHTML = '';
+      if(error){ pane.innerHTML = `<div class="session-meta">Gagal memuat pesan.</div>`; return; }
+      data.forEach(m => addBubble(m, targetId));
+      pane.scrollTop = pane.scrollHeight;
+    }
+
+    // ==== ADD BUBBLE ====
+    function addBubble(m, targetId){
+      const div = document.createElement('div');
+      const mine = (auth.role==='user') ? (m.sender==='user') : (m.sender!=='user'); // admin melihat lawan= user sebagai other
+      div.className = `bubble ${mine?'me':'other'}`;
+      div.textContent = m.message;
+      document.getElementById(targetId).appendChild(div);
+    }
+
+    // ==== USER SEND ====
+    document.getElementById('btnUserSend').addEventListener('click', sendUserMessage);
+    async function sendUserMessage(){
+      const input = document.getElementById('userMessageInput');
+      const text = input.value.trim();
+      if(!text || !currentSession) return;
+      input.value = '';
+      const { error } = await sb.from('messages')
+        .insert({ session_id: currentSession.id, sender:'user', message:text });
+      if(error){ toast('Gagal kirim: '+error.message); }
+    }
+
+
+    // ==== SUBSCRIBE USER MESSAGES ====
+    function subscribeUserMessages(sessionId){
+      if(msgChannel){ sb.removeChannel(msgChannel); msgChannel=null; }
+      msgChannel = sb
+        .channel('user_messages_'+sessionId)
+        .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages', filter:`session_id=eq.${sessionId}` },
+          (payload)=>{ addBubble(payload.new, 'userMessages'); 
+                       const pane = document.getElementById('userMessages'); pane.scrollTop = pane.scrollHeight; })
+        .subscribe();
+    }
+
+    // ================== ADMIN FEATURES ==================
+    // tabs
+    document.getElementById('tabActive').addEventListener('click', ()=>{
+      hide('listClosed'); show('listActive');
+    });
+    document.getElementById('tabClosed').addEventListener('click', ()=>{
+      hide('listActive'); show('listClosed');
+    });
+    function subscribeUserMessages(sessionId){
+  if(msgChannel){ sb.removeChannel(msgChannel); msgChannel=null; }
+  msgChannel = sb
+    .channel('user_messages_'+sessionId)
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages', filter:`session_id=eq.${sessionId}` },
+      (payload)=>{ 
+        addBubble(payload.new, 'userMessages'); 
+        const pane = document.getElementById('userMessages'); 
+        pane.scrollTop = pane.scrollHeight; 
+      })
+    // tambahkan listener untuk perubahan status session
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'sessions', filter:`id=eq.${sessionId}` },
+      (payload)=>{
+        if(payload.new.status==='closed'){
+          toast('Sesi ditutup oleh Admin. Terima kasih.');
+          setTitle('Pilih Dokter');
+          loadDoctors();
+          goto('pageChooseDoctor');
+          if(msgChannel){ sb.removeChannel(msgChannel); msgChannel=null; }
+        }
+      })
+    .subscribe();
+    }
+
+    async function loadAdminLists(){
+      // active
+      const { data:act, error:eA } = await sb
+        .from('sessions')
+        .select('id, created_at, user_id, doctor_id, status, users!inner(phone), doctors!inner(name)')
+        .eq('status','active')
+        .order('created_at',{ascending:false});
+      renderSessionList(act||[], 'activeContainer', true);
+
+      // closed
+      const { data:clo, error:eC } = await sb
+        .from('sessions')
+        .select('id, created_at, closed_at, user_id, doctor_id, status, users!inner(phone), doctors!inner(name)')
+        .eq('status','closed')
+        .order('closed_at',{ascending:false});
+      renderSessionList(clo||[], 'closedContainer', false);
+    }
+
+    function renderSessionList(items, containerId, isActive){
+      const cont = document.getElementById(containerId);
+      cont.innerHTML = '';
+      if(!items.length){
+        cont.innerHTML = '<div class="session-meta">Belum ada data.</div>';
+        return;
+      }
+      items.forEach(s=>{
+        const div = document.createElement('div');
+        div.className = 'session-item';
+        div.innerHTML = `
+          <div class="doc-avatar">${(s.doctors?.name || 'DR').replace('Dr.','').trim().slice(0,2).toUpperCase()}</div>
+          <div>
+            <div><strong>${s.users?.phone || '-'}</strong></div>
+            <div class="session-meta">${s.doctors?.name || '-'} • ${new Date(s.created_at).toLocaleString()}</div>
+            <div class="row" style="margin-top:6px">
+              <span class="chip">${isActive?'Aktif':'Selesai'}</span>
+            </div>
+          </div>
+        `;
+        div.onclick = ()=> openAdminChat(s.id, isActive);
+        cont.appendChild(div);
+      });
+    }
+
+    async function openAdminChat(sessionId, isActive){
+      adminViewingSessionId = sessionId;
+      show('btnMarkDone'); if(!isActive) hide('btnMarkDone');
+      // title
+      const { data:s, error } = await sb
+        .from('sessions')
+        .select('id, created_at, status, users!inner(phone), doctors!inner(name,specialization)')
+        .eq('id', sessionId).single();
+      if(!error && s){
+        document.getElementById('adminChatTitle').textContent =
+          `Chat • ${s.users.phone} ↔ ${s.doctors.name}`;
+        document.getElementById('adminChatSubtitle').textContent =
+          `${s.doctors.specialization||''} • Status: ${s.status}`;
+      }
+      // messages
+      await loadMessagesFor(sessionId, 'adminMessages');
+      subscribeAdminMessages(sessionId);
+    }
+
+    // admin send
+    document.getElementById('btnAdminSend').addEventListener('click', async ()=>{
+      const text = document.getElementById('adminMessageInput').value.trim();
+      if(!text || !adminViewingSessionId) return;
+      document.getElementById('adminMessageInput').value = '';
+      const { error } = await sb.from('messages')
+        .insert({ session_id: adminViewingSessionId, sender:'admin', message:text });
+      if(error){ toast('Gagal kirim: '+error.message); }
+    });
+
+    // mark done
+    document.getElementById('btnMarkDone').addEventListener('click', async ()=>{
+      if(!adminViewingSessionId) return;
+      const { error } = await sb.from('sessions')
+        .update({ status:'closed', closed_at: new Date().toISOString() })
+        .eq('id', adminViewingSessionId);
+      if(error){ toast('Gagal menutup sesi: '+error.message); return; }
+      toast('Sesi ditandai selesai.');
+      loadAdminLists();
+      openAdminChat(adminViewingSessionId, false);
+      hide('btnMarkDone');
+    });
+
+    // realtime sessions to refresh lists
+    function subscribeAdminSessions(){
+      sb.channel('admin_sessions')
+        .on('postgres_changes', { event:'INSERT', schema:'public', table:'sessions' }, loadAdminLists)
+        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'sessions' }, loadAdminLists)
+        .subscribe();
+    }
+
+    // realtime messages on admin view
+    function subscribeAdminMessages(sessionId){
+      if(adminMsgChannel){ sb.removeChannel(adminMsgChannel); adminMsgChannel=null; }
+      adminMsgChannel = sb
+        .channel('admin_messages_'+sessionId)
+        .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages', filter:`session_id=eq.${sessionId}` },
+          (payload)=>{ addBubble(payload.new, 'adminMessages');
+                       const pane = document.getElementById('adminMessages'); pane.scrollTop = pane.scrollHeight; })
+        .subscribe();
+    }
+
+    // prevent enter from submitting accidentally on login
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter'){
+        const page = document.querySelector('.page.active')?.id;
+        if(page==='pageLogin'){
+          // pick focused
+          if(document.activeElement===document.getElementById('userPhone')) loginUser();
+          else if(document.activeElement===document.getElementById('adminPass') || document.activeElement===document.getElementById('adminUser')) loginAdmin();
+        }else if(page==='pageUserChat'){
+          sendUserMessage();
+        }else if(page==='pageAdmin'){
+          document.getElementById('btnAdminSend').click();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
